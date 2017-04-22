@@ -4,7 +4,7 @@ Usage:
 
 Options:
       --input-filename=<txt>            Input text file to learn
-      --model-filename=<model>          Filename for saved model [default: default.h5]
+      --weights-filename=<model>        Filename for saved model [default: default.h5]
       --epochs=<epochs>                 Number of epochs to train [default: 2000].
       --batches-per-epoch=<b>           Number of batches per epoch [default: 1000].
       --batch-size=<size>               Batch size for training [default: 16]

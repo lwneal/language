@@ -45,14 +45,15 @@ def build_model(dataset, **params):
 def main(**params):
     dataset = Dataset(**params)
 
-    if os.path.exists(params['model_filename']):
-        model = models.load_model(params['model_filename'])
-    else:
-        model = build_model(dataset, **params)
+    model = build_model(dataset, **params)
+
+    if os.path.exists(params['weights_filename']):
+        model.load_weights(params['weights_filename'])
+
     model.compile(loss='sparse_categorical_crossentropy', optimizer='adam')
 
     for epoch in range(params['epochs']):
         train(model, dataset, **params)
         validate(model, dataset, **params)
-        model.save(params['model_filename'])
+        model.save_weights(params['weights_filename'])
 
