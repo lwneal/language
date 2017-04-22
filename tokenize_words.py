@@ -4,7 +4,7 @@ import nltk
 import re
 
 
-def main(input_fp, output_fp):
+def tokenize(input_fp, output_fp):
     text = input_fp.read()
     sentences = nltk.sent_tokenize(text)
     for s in sentences:
@@ -25,4 +25,4 @@ if __name__ == '__main__':
         output_fp = open(sys.argv[2], 'w')
     else:
         output_fp = sys.stdout
-    main(input_fp, output_fp)
+    tokenize(input_fp, output_fp)
