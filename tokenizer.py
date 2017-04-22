@@ -6,7 +6,9 @@ from StringIO import StringIO
 
 
 def tokenize(input_fp, output_fp):
+    print("Checking if tokenizer model is available...")
     nltk.download('punkt')
+    print("Tokenizer model cached")
     text = input_fp.read()
     sentences = nltk.sent_tokenize(text)
     for s in sentences:

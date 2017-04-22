@@ -8,20 +8,38 @@ from dataset import Dataset
 
 
 def train(model, dataset, **params):
+    batches_per_epoch = params['batches_per_epoch']
     def batcher():
         while True:
             yield dataset.get_batch(**params)
-    model.fit_generator(batcher(), steps_per_epoch=100)
+    model.fit_generator(batcher(), steps_per_epoch=batches_per_epoch)
 
 
-def validate(model, dataset, **params):
-    X, _ = dataset.get_batch(**params)
-    for _ in range(params['max_words'] / 2):
-        preds = np.argmax(model.predict(X), axis=1)
+def demonstrate(model, dataset, **params):
+    X = dataset.get_empty_batch(**params)
+    batch_size, max_words = X.shape
+    for i in range(max_words - 1):
+        T = temperature = 1 - (float(i) / max_words)
         X = np.roll(X, -1, axis=1)
-        X[:,-1] = preds
-    for i in range(params['batch_size']):
+        pdf = boltzmann(model.predict(X), T)
+        X[:, -1] = sample(pdf)
+    for i in range(batch_size):
         print(' '.join(dataset.words(X[i])))
+
+
+# Actually boltzmann(log(x)) for stability
+def boltzmann(pdf, temperature=1.0, epsilon=1e-6):
+    pdf = np.log(pdf) / temperature
+    x = np.exp(pdf)
+    sums = np.sum(x, axis=-1)[:, np.newaxis] + epsilon
+    return x / sums
+
+
+def sample(pdfs):
+    samples = np.zeros(pdfs.shape[0])
+    for i in range(len(samples)):
+        samples[i] = np.argmax(np.random.multinomial(1, pdfs[i], 1))
+    return samples
 
 
 def build_model(dataset, **params):
@@ -54,6 +72,6 @@ def main(**params):
 
     for epoch in range(params['epochs']):
         train(model, dataset, **params)
-        validate(model, dataset, **params)
+        demonstrate(model, dataset, **params)
         model.save_weights(params['weights_filename'])
 

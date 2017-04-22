@@ -7,6 +7,7 @@ from tokenizer import tokenize_text
 PAD_TOKEN = ' '
 START_TOKEN = '<BOS>'
 END_TOKEN = '<EOS>'
+
 class Dataset(object):
     def __init__(self, input_filename=None, **params):
         text = open(input_filename).read()
@@ -31,18 +32,18 @@ class Dataset(object):
 
     def get_batch(self, **params):
         batch_size = params['batch_size']
-        x, y = get_example(**params)
+        x, y = self.get_example(**params)
         X = np.zeros((batch_size,) + x.shape)
         Y = np.zeros((batch_size,) + y.shape)
         for i in range(batch_size):
             X[i] = x
             Y[i] = y
-            x, y = get_example(**params)
+            x, y = self.get_example(**params)
         return X, Y
 
     def get_example(self, **params):
         sentence = random.choice(self.sentences)
-        sentence = [START_TOKEN] + sentence + [END_TOKEN]
+        sentence = '{} {} {}'.format(START_TOKEN, sentence, END_TOKEN)
         si = self.indices(sentence)
         idx = np.random.randint(0, len(si))
         left, right = si[:idx], [si[idx]]
@@ -50,6 +51,11 @@ class Dataset(object):
         left = np.array(left)
         right = np.array(right)
         return left, right
+
+    def get_empty_batch(self, batch_size=1, max_words=12, **params):
+        X = np.zeros((batch_size, max_words))
+        X[:, -1] = self.word_to_idx[START_TOKEN]
+        return X
 
 
 def remove_unicode(text):
