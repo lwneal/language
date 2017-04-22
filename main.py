@@ -44,5 +44,6 @@ def argval(val):
 
 
 if __name__ == '__main__':
+    params = get_params()
     import learnwords
-    learnwords.main(**get_params())
+    learnwords.main(**params)
