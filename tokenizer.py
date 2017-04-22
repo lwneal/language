@@ -2,6 +2,7 @@
 import sys
 import nltk
 import re
+from StringIO import StringIO
 
 
 def tokenize(input_fp, output_fp):
@@ -10,7 +11,13 @@ def tokenize(input_fp, output_fp):
     for s in sentences:
         words = nltk.word_tokenize(s)
         output_fp.write(' '.join(words) + '\n')
-    output_fp.close()
+
+
+def tokenize_text(text):
+    buf_in = StringIO(text)
+    buf_out = StringIO()
+    tokenize(buf_in, buf_out)
+    return buf_out.getvalue()
 
 
 if __name__ == '__main__':

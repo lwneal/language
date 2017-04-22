@@ -16,7 +16,7 @@ def train(model, dataset, **params):
 
 def validate(model, dataset, **params):
     X, _ = get_batch(dataset, **params)
-    for _ in range(params['max_words']/2):
+    for _ in range(params['max_words'] / 2):
         preds = np.argmax(model.predict(X), axis=1)
         X = np.roll(X, -1, axis=1)
         X[:,-1] = preds

@@ -1,5 +1,6 @@
 import random
 import numpy as np
+from tokenizer import tokenize_text
 
 
 PAD_TOKEN = ' '
@@ -8,6 +9,7 @@ END_TOKEN = '<EOS>'
 class Dataset(object):
     def __init__(self, input_filename=None, **params):
         text = open(input_filename).read()
+        text = tokenize_text(text)
         self.sentences = text.splitlines()
         self.vocab = sorted(list(set(text.split() + [PAD_TOKEN, START_TOKEN, END_TOKEN])))
         self.word_to_idx = {}
