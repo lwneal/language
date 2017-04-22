@@ -6,6 +6,7 @@ from StringIO import StringIO
 
 
 def tokenize(input_fp, output_fp):
+    nltk.download('punkt')
     text = input_fp.read()
     sentences = nltk.sent_tokenize(text)
     for s in sentences:
