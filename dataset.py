@@ -1,3 +1,4 @@
+import re
 import random
 import numpy as np
 from tokenizer import tokenize_text
@@ -9,6 +10,8 @@ END_TOKEN = '<EOS>'
 class Dataset(object):
     def __init__(self, input_filename=None, **params):
         text = open(input_filename).read()
+        text = remove_unicode(text)
+        text = text.lower()
         text = tokenize_text(text)
         self.sentences = text.splitlines()
         self.vocab = sorted(list(set(text.split() + [PAD_TOKEN, START_TOKEN, END_TOKEN])))
@@ -24,6 +27,10 @@ class Dataset(object):
 
     def words(self, indices):
         return [self.idx_to_word.get(i) for i in indices]
+
+
+def remove_unicode(text):
+    return re.sub(r'[^\x00-\x7f]', r'', text)
 
 
 def get_batch(dataset, **params):
