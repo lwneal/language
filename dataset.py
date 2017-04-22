@@ -26,34 +26,34 @@ class Dataset(object):
         return [self.word_to_idx[w] for w in words.split()]
 
     def words(self, indices):
+        # TODO: Properly detokenize and join
         return [self.idx_to_word.get(i) for i in indices]
+
+    def get_batch(self, **params):
+        batch_size = params['batch_size']
+        x, y = get_example(**params)
+        X = np.zeros((batch_size,) + x.shape)
+        Y = np.zeros((batch_size,) + y.shape)
+        for i in range(batch_size):
+            X[i] = x
+            Y[i] = y
+            x, y = get_example(**params)
+        return X, Y
+
+    def get_example(self, **params):
+        sentence = random.choice(self.sentences)
+        sentence = [START_TOKEN] + sentence + [END_TOKEN]
+        si = self.indices(sentence)
+        idx = np.random.randint(0, len(si))
+        left, right = si[:idx], [si[idx]]
+        left = left_pad(left, **params)
+        left = np.array(left)
+        right = np.array(right)
+        return left, right
 
 
 def remove_unicode(text):
     return re.sub(r'[^\x00-\x7f]', r'', text)
-
-
-def get_batch(dataset, **params):
-    batch_size = params['batch_size']
-    x, y = get_example(dataset, **params)
-    X = np.zeros((batch_size,) + x.shape)
-    Y = np.zeros((batch_size,) + y.shape)
-    for i in range(batch_size):
-        X[i] = x
-        Y[i] = y
-        x, y = get_example(dataset, **params)
-    return X, Y
-
-
-def get_example(dataset, **params):
-    sentence = random.choice(dataset.sentences)
-    si = dataset.indices(sentence)
-    idx = np.random.randint(0, len(si))
-    left, right = si[:idx], [si[idx]]
-    left = left_pad(left, **params)
-    left = np.array(left)
-    right = np.array(right)
-    return left, right
 
 
 def left_pad(indices, max_words=10, **kwargs):

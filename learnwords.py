@@ -4,18 +4,18 @@ import random
 import numpy as np
 from keras import layers, models
 
-from dataset import Dataset, get_batch
+from dataset import Dataset
 
 
 def train(model, dataset, **params):
     def batcher():
         while True:
-            yield get_batch(dataset, **params)
+            yield dataset.get_batch(**params)
     model.fit_generator(batcher(), steps_per_epoch=100)
 
 
 def validate(model, dataset, **params):
-    X, _ = get_batch(dataset, **params)
+    X, _ = dataset.get_batch(**params)
     for _ in range(params['max_words'] / 2):
         preds = np.argmax(model.predict(X), axis=1)
         X = np.roll(X, -1, axis=1)
