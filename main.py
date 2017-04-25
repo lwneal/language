@@ -32,11 +32,11 @@ def argval(val):
         return val.lower().startswith('t')
     try:
         return int(val)
-    except ValueError:
+    except:
         pass
     try:
         return float(val)
-    except ValueError:
+    except:
         pass
     if val == 'None':
         return None

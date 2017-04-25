@@ -10,6 +10,8 @@ END_TOKEN = '<EOS>'
 
 class Dataset(object):
     def __init__(self, input_filename=None, **params):
+        if not input_filename:
+            raise ValueError("No input filename supplied. See options with --help")
         text = open(input_filename).read()
         text = remove_unicode(text)
         text = text.lower()
