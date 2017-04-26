@@ -5,6 +5,7 @@ from tokenizer import tokenize_text
 
 
 PAD_TOKEN = ' '
+UNK_TOKEN = '<unk>'
 START_TOKEN = '<bos>'
 END_TOKEN = '<eos>'
 
@@ -22,7 +23,9 @@ class Dataset(object):
             text = text.lower()
 
         self.sentences = text.splitlines()
-        self.vocab = sorted(list(set(text.split() + [PAD_TOKEN, START_TOKEN, END_TOKEN])))
+        print("Input file {} contains {} sentences".format(input_filename, len(self.sentences)))
+        self.vocab = get_vocab(text)
+        print("Vocabulary contains {} words from {} to {}".format(len(self.vocab), self.vocab[0], self.vocab[-1]))
         self.word_to_idx = {}
         self.idx_to_word = {}
         for i, word in enumerate(self.vocab):
@@ -37,17 +40,6 @@ class Dataset(object):
     def words(self, indices):
         # TODO: Properly detokenize and join
         return [self.idx_to_word.get(i) for i in indices]
-
-    def get_batch(self, **params):
-        batch_size = params['batch_size']
-        x, y = self.get_example(**params)
-        X = np.zeros((batch_size,) + x.shape)
-        Y = np.zeros((batch_size,) + y.shape)
-        for i in range(batch_size):
-            X[i] = x
-            Y[i] = y
-            x, y = self.get_example(**params)
-        return X, Y
 
     def get_example(self, **params):
         sentence = random.choice(self.sentences)
@@ -66,6 +58,16 @@ class Dataset(object):
         return X
 
 
+def get_vocab(text, n=3):
+    word_count = {}
+    for word in text.split():
+        if word not in word_count:
+            word_count[word] = 0
+        word_count[word] += 1
+    words = [w for w in text.split() if word_count[w] > n]
+    return sorted(list(set(words + [PAD_TOKEN, START_TOKEN, END_TOKEN, UNK_TOKEN])))
+
+
 def remove_unicode(text):
     return re.sub(r'[^\x00-\x7f]', r'', text)
 
@@ -75,4 +77,11 @@ def left_pad(indices, max_words=10, **kwargs):
     if len(indices) > max_words:
         indices = indices[-max_words:]
     res[max_words - len(indices):] = indices
+    return res
+
+def right_pad(indices, max_words=10, **kwargs):
+    res = np.zeros(max_words, dtype=int)
+    if len(indices) > max_words:
+        indices = indices[:max_words]
+    res[:len(indices)] = indices
     return res

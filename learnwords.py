@@ -2,31 +2,52 @@ import os
 import sys
 import random
 import numpy as np
+from keras.utils import to_categorical
 from keras import layers, models
 
-from dataset import Dataset, left_pad
+from dataset import Dataset, left_pad, right_pad
 
 
-def train(model, dataset, **params):
-    batches_per_epoch = params['batches_per_epoch']
-    def batcher():
+def train(model, encoder_dataset, decoder_dataset, **params):
+    def get_batch():
+        batch_size = params['batch_size']
+        max_words = params['max_words']
+        decoder_vocab_len = len(decoder_dataset.vocab)
+        sentence_count = len(encoder_dataset.sentences)
+        X = np.zeros((batch_size, max_words), dtype=int)
+        Y = np.zeros((batch_size, max_words, decoder_vocab_len))
+        for i in range(batch_size):
+            j = np.random.randint(0, sentence_count)
+            sent_in = encoder_dataset.sentences[j]
+            sent_out = decoder_dataset.sentences[j]
+            x = left_pad(encoder_dataset.indices(sent_in), **params)
+            y = right_pad(decoder_dataset.indices(sent_out), **params)
+            # TODO: Drop to_categorical and go back to sparse_categorical_crossentropy?
+            X[i], Y[i] = x, to_categorical(y, decoder_vocab_len)
+        return X, Y
+
+    def gen():
         while True:
-            yield dataset.get_batch(**params)
-    model.fit_generator(batcher(), steps_per_epoch=batches_per_epoch)
+            yield get_batch()
+    batches_per_epoch = params['batches_per_epoch']
+    X, Y = get_batch()
+    model.train_on_batch(X, Y)
+    model.fit_generator(gen(), steps_per_epoch=batches_per_epoch)
 
 
-def demonstrate(model, dataset, input_text=None, **params):
-    X = dataset.get_empty_batch(**params)
+
+def demonstrate(model, encoder_dataset, decoder_dataset, input_text=None, **params):
+    X = encoder_dataset.get_empty_batch(**params)
+    for i in range(params['batch_size']):
+        X[i] = left_pad(encoder_dataset.indices(random.choice(encoder_dataset.sentences)), **params)
     batch_size, max_words = X.shape
-    if input_text:
-        X[0] = left_pad(dataset.indices(input_text), **params)
-    for i in range(max_words - 1):
-        T = params['max_temperature'] * (1 - (float(i) / max_words))
-        X = np.roll(X, -1, axis=1)
-        pdf = boltzmann(model.predict(X), T)
-        X[:, -1] = sample(pdf)
-    for i in range(batch_size):
-        print(' '.join(dataset.words(X[i])))
+
+    preds = model.predict(X)
+    Y = np.argmax(preds, axis=-1)
+    for i in range(len(Y)):
+        left = ' '.join(encoder_dataset.words(X[i]))
+        right = ' '.join(decoder_dataset.words(Y[i]))
+        print('{} --> {}'.format(left, right))
 
 
 # Actually boltzmann(log(x)) for stability
@@ -47,12 +68,23 @@ def sample(pdfs):
     return samples
 
 
-def build_model(dataset, **params):
+def build_model(encoder_dataset, decoder_dataset, **params):
+    encoder = build_encoder(encoder_dataset, **params)
+    decoder = build_decoder(decoder_dataset, **params)
+
+    combined = models.Sequential()
+    combined.add(encoder)
+    combined.add(decoder)
+    return encoder, decoder, combined
+
+
+def build_encoder(dataset, **params):
     rnn_type = getattr(layers, params['rnn_type'])
     wordvec_size = params['wordvec_size']
     rnn_size = params['rnn_size']
     rnn_layers = params['rnn_layers']
     max_words = params['max_words']
+    thought_vector_size = params['thought_vector_size']
     vocab_len = len(dataset.vocab)
 
     inp = layers.Input(shape=(max_words,), dtype='int32')
@@ -60,34 +92,58 @@ def build_model(dataset, **params):
     for _ in range(rnn_layers - 1):
         x = rnn_type(rnn_size, return_sequences=True)(x)
     x = rnn_type(rnn_size)(x)
-    x = layers.Dense(vocab_len, activation='softmax')(x)
-    moo = models.Model(inputs=inp, outputs=x)
+    x = layers.Activation('relu')(x)
+    encoded = layers.Dense(thought_vector_size, activation='tanh')(x)
+    moo = models.Model(inputs=inp, outputs=encoded)
     return moo
+
+
+def build_decoder(dataset, **params):
+    rnn_type = getattr(layers, params['rnn_type'])
+    wordvec_size = params['wordvec_size']
+    rnn_size = params['rnn_size']
+    rnn_layers = params['rnn_layers']
+    max_words = params['max_words']
+    thought_vector_size = params['thought_vector_size']
+    vocab_len = len(dataset.vocab)
+
+    inp = layers.Input(shape=(thought_vector_size,))
+    x = layers.RepeatVector(max_words)(inp)
+    for _ in range(rnn_layers - 1):
+        x = rnn_type(rnn_size, return_sequences=True)(x)
+    x = rnn_type(rnn_size, return_sequences=True)(x)
+    word_preds = layers.TimeDistributed(layers.Dense(vocab_len, activation='softmax'))(x)
+    return models.Model(inputs=inp, outputs=word_preds)
 
 
 def main(**params):
     print("Loading dataset")
-    dataset = Dataset(**params)
+    # TODO: Separate datasets
+    encoder_dataset = Dataset(params['encoder_input_filename'], **params)
+    decoder_dataset = Dataset(params['decoder_input_filename'], **params)
     print("Dataset loaded")
 
     print("Building model")
-    model = build_model(dataset, **params)
+    encoder, decoder, combined = build_model(encoder_dataset, decoder_dataset, **params)
     print("Model built")
 
-    if os.path.exists(params['weights_filename']):
-        model.load_weights(params['weights_filename'])
+    if os.path.exists(params['encoder_weights']):
+        encoder.load_weights(params['encoder_weights'])
+    if os.path.exists(params['decoder_weights']):
+        decoder.load_weights(params['decoder_weights'])
 
-    model.compile(loss='sparse_categorical_crossentropy', optimizer='adam')
+    combined.compile(loss='categorical_crossentropy', optimizer='adam')
 
     if params['mode'] == 'train':
         for epoch in range(params['epochs']):
-            train(model, dataset, **params)
-            demonstrate(model, dataset, **params)
-            model.save_weights(params['weights_filename'])
+            train(combined, encoder_dataset, decoder_dataset, **params)
+            demonstrate(combined, encoder_dataset, decoder_dataset, **params)
+            encoder.save_weights(params['encoder_weights'])
+            decoder.save_weights(params['decoder_weights'])
     elif params['mode'] == 'demo':
         print("Demonstration time!")
         params['batch_size'] = 1
         while True:
             inp = raw_input("Type a complete sentence in the input language: ")
             inp = inp.decode('utf-8').lower()
-            demonstrate(model, dataset, input_text=inp, **params)
+            demonstrate(combined, dataset, input_text=inp, **params)
