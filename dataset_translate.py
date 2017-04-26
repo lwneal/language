@@ -37,9 +37,19 @@ def get_translations(src, dst, links):
 
 
 if __name__ == '__main__':
-    src_lang = sys.argv[1]
-    dst_lang = sys.argv[2]
+    if len(sys.argv) < 3:
+        print("Usage: python translate.py english.txt deutsch.txt")
+        print("Outputs two files with line-to-line correspondance")
+        exit()
+    src_filename = sys.argv[1]
+    dst_filename = sys.argv[2]
+    src_lang = src_filename[:3]
+    dst_lang = dst_filename[:3]
     sentences = get_dataset(src_lang, dst_lang)
+    fp_src = open(src_filename, 'w')
+    fp_dst = open(dst_filename, 'w')
     for src, dst in sentences:
-        line = (' '.join(src) + ' <EOS> ' + ' '.join(dst))
-        print(line.encode('utf-8'))
+        fp_src.write((' '.join(src) + '\n').encode('utf-8'))
+        fp_dst.write((' '.join(dst) + '\n').encode('utf-8'))
+    fp_src.close()
+    fp_dst.close()
