@@ -25,7 +25,7 @@ class Dataset(object):
         self.sentences = text.splitlines()
         print("Input file {} contains {} sentences".format(input_filename, len(self.sentences)))
         self.vocab = get_vocab(text)
-        print("Vocabulary contains {} words from {} to {}".format(len(self.vocab), self.vocab[0], self.vocab[-1]))
+        print("Vocabulary contains {} words from {} to {}".format(len(self.vocab), self.vocab[4], self.vocab[-1]))
         self.word_to_idx = {}
         self.idx_to_word = {}
         for i, word in enumerate(self.vocab):
