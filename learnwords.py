@@ -61,9 +61,13 @@ def build_model(dataset, **params):
 
 
 def main(**params):
+    print("Loading dataset")
     dataset = Dataset(**params)
+    print("Dataset loaded")
 
+    print("Building model")
     model = build_model(dataset, **params)
+    print("Model built")
 
     if os.path.exists(params['weights_filename']):
         model.load_weights(params['weights_filename'])
