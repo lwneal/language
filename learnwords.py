@@ -20,7 +20,7 @@ def train(model, encoder_dataset, decoder_dataset, **params):
             j = np.random.randint(0, sentence_count)
             sent_in = encoder_dataset.sentences[j]
             sent_out = decoder_dataset.sentences[j]
-            x = left_pad(encoder_dataset.indices(sent_in), **params)
+            x = left_pad(encoder_dataset.indices(sent_in)[:max_words], **params)
             y = right_pad(decoder_dataset.indices(sent_out), **params)
             # TODO: Drop to_categorical and go back to sparse_categorical_crossentropy?
             X[i], Y[i] = x, to_categorical(y, decoder_vocab_len)
