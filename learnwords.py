@@ -37,9 +37,11 @@ def train(model, encoder_dataset, decoder_dataset, **params):
 
 
 def demonstrate(model, encoder_dataset, decoder_dataset, input_text=None, **params):
+    max_words = params['max_words']
     X = encoder_dataset.get_empty_batch(**params)
     for i in range(params['batch_size']):
-        X[i] = left_pad(encoder_dataset.indices(random.choice(encoder_dataset.sentences)), **params)
+        words = random.choice(encoder_dataset.sentences)[:max_words]
+        X[i] = left_pad(encoder_dataset.indices(words), **params)
     batch_size, max_words = X.shape
 
     preds = model.predict(X)
