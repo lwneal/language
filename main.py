@@ -13,6 +13,10 @@ Options:
       --rnn-type=<type>                 One of LSTM, GRU [default: LSTM]
       --rnn-size=<size>                 Number of output units in RNN [default: 1024]
       --rnn-layers=<layers>             Number of layers of RNN to use [default: 1]
+      --tokenize=<tokenize>             If True, input text will be tokenized [default: True]
+      --lowercase=<lower>               If True, lowercase all words [default: True]
+      --mode=<mode>                     One of train, demo [default: train]
+      --max-temperature=<temp>          Max temperature for Boltzmann/Gibbs sampling [default: 1.0]
 """
 from docopt import docopt
 from pprint import pprint

@@ -5,17 +5,22 @@ from tokenizer import tokenize_text
 
 
 PAD_TOKEN = ' '
-START_TOKEN = '<BOS>'
-END_TOKEN = '<EOS>'
+START_TOKEN = '<bos>'
+END_TOKEN = '<eos>'
 
 class Dataset(object):
     def __init__(self, input_filename=None, **params):
         if not input_filename:
             raise ValueError("No input filename supplied. See options with --help")
         text = open(input_filename).read()
-        text = remove_unicode(text)
-        text = text.lower()
-        text = tokenize_text(text)
+
+        if params.get('tokenize'):
+            text = remove_unicode(text)
+            text = tokenize_text(text)
+        
+        if params.get('lowercase'):
+            text = text.lower()
+
         self.sentences = text.splitlines()
         self.vocab = sorted(list(set(text.split() + [PAD_TOKEN, START_TOKEN, END_TOKEN])))
         self.word_to_idx = {}
@@ -25,8 +30,9 @@ class Dataset(object):
             self.idx_to_word[i] = word
 
     def indices(self, words):
-        # TODO: Properly tokenize
-        return [self.word_to_idx[w] for w in words.split()]
+        # TODO: Properly tokenize?
+        unk = self.word_to_idx[PAD_TOKEN]
+        return [self.word_to_idx.get(w, unk) for w in words.split()]
 
     def words(self, indices):
         # TODO: Properly detokenize and join

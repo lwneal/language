@@ -4,7 +4,7 @@ import random
 import numpy as np
 from keras import layers, models
 
-from dataset import Dataset
+from dataset import Dataset, left_pad
 
 
 def train(model, dataset, **params):
@@ -15,11 +15,13 @@ def train(model, dataset, **params):
     model.fit_generator(batcher(), steps_per_epoch=batches_per_epoch)
 
 
-def demonstrate(model, dataset, **params):
+def demonstrate(model, dataset, input_text=None, **params):
     X = dataset.get_empty_batch(**params)
     batch_size, max_words = X.shape
+    if input_text:
+        X[0] = left_pad(dataset.indices(input_text), **params)
     for i in range(max_words - 1):
-        T = temperature = 1 - (float(i) / max_words)
+        T = params['max_temperature'] * (1 - (float(i) / max_words))
         X = np.roll(X, -1, axis=1)
         pdf = boltzmann(model.predict(X), T)
         X[:, -1] = sample(pdf)
@@ -28,7 +30,9 @@ def demonstrate(model, dataset, **params):
 
 
 # Actually boltzmann(log(x)) for stability
-def boltzmann(pdf, temperature=1.0, epsilon=1e-6):
+def boltzmann(pdf, temperature=1.0, epsilon=1e-5):
+    if temperature < epsilon:
+        return pdf / (pdf.sum() + epsilon)
     pdf = np.log(pdf) / temperature
     x = np.exp(pdf)
     sums = np.sum(x, axis=-1)[:, np.newaxis] + epsilon
@@ -36,9 +40,10 @@ def boltzmann(pdf, temperature=1.0, epsilon=1e-6):
 
 
 def sample(pdfs):
-    samples = np.zeros(pdfs.shape[0])
+    max_words, vocab_size = pdfs.shape
+    samples = np.zeros(max_words)
     for i in range(len(samples)):
-        samples[i] = np.argmax(np.random.multinomial(1, pdfs[i], 1))
+        samples[i] = np.random.choice(np.arange(vocab_size), p=pdfs[i])
     return samples
 
 
@@ -74,8 +79,15 @@ def main(**params):
 
     model.compile(loss='sparse_categorical_crossentropy', optimizer='adam')
 
-    for epoch in range(params['epochs']):
-        train(model, dataset, **params)
-        demonstrate(model, dataset, **params)
-        model.save_weights(params['weights_filename'])
-
+    if params['mode'] == 'train':
+        for epoch in range(params['epochs']):
+            train(model, dataset, **params)
+            demonstrate(model, dataset, **params)
+            model.save_weights(params['weights_filename'])
+    elif params['mode'] == 'demo':
+        print("Demonstration time!")
+        params['batch_size'] = 1
+        while True:
+            inp = raw_input("Type a complete sentence in the input language: ")
+            inp = inp.decode('utf-8').lower()
+            demonstrate(model, dataset, input_text=inp, **params)
