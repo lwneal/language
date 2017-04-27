@@ -40,8 +40,8 @@ def demonstrate(model, encoder_dataset, decoder_dataset, input_text=None, **para
     max_words = params['max_words']
     X = encoder_dataset.get_empty_batch(**params)
     for i in range(params['batch_size']):
-        words = random.choice(encoder_dataset.sentences)[:max_words]
-        X[i] = left_pad(encoder_dataset.indices(words), **params)
+        words = random.choice(encoder_dataset.sentences)
+        X[i] = left_pad(encoder_dataset.indices(words)[:max_words], **params)
     batch_size, max_words = X.shape
 
     preds = model.predict(X)
