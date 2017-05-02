@@ -40,8 +40,9 @@ def demonstrate(model, encoder_dataset, decoder_dataset, input_text=None, **para
     max_words = params['max_words']
     X = encoder_dataset.get_empty_batch(**params)
     for i in range(params['batch_size']):
-        words = random.choice(encoder_dataset.sentences)
-        X[i] = left_pad(encoder_dataset.indices(words)[:max_words], **params)
+        if not input_text:
+            input_text = random.choice(encoder_dataset.sentences)
+        X[i] = left_pad(encoder_dataset.indices(input_text)[:max_words], **params)
     batch_size, max_words = X.shape
 
     preds = model.predict(X)
@@ -148,4 +149,4 @@ def main(**params):
         while True:
             inp = raw_input("Type a complete sentence in the input language: ")
             inp = inp.decode('utf-8').lower()
-            demonstrate(combined, dataset, input_text=inp, **params)
+            demonstrate(combined, encoder_dataset, decoder_dataset, input_text=inp, **params)

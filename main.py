@@ -19,7 +19,7 @@ Options:
       --tokenize=<tokenize>             If True, input text will be tokenized [default: False]
       --lowercase=<lower>               If True, lowercase all words [default: True]
       --mode=<mode>                     One of train, demo [default: train]
-      --max-temperature=<temp>          Max temperature for Boltzmann/Gibbs sampling [default: 1.0]
+      --max-temperature=<temp>          Sampling temperature for log-Boltzmann distribution [default: 1.0]
 """
 from docopt import docopt
 from pprint import pprint
@@ -52,5 +52,5 @@ def argval(val):
 
 if __name__ == '__main__':
     params = get_params()
-    import learnwords
-    learnwords.main(**params)
+    import transcoder
+    transcoder.main(**params)
